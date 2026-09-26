@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PHISHGUARD // Threat Intelligence & Phishing Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body class="cyber-theme">
+  <!-- Dynamic Background Matrix Canvas & Grid Overlay -->
+  <canvas id="matrixCanvas"></canvas>
+  <div class="cyber-grid-overlay"></div>
+  <div class="scanline"></div>
+
+  <!-- Header / Navigation -->
+  <header class="top-nav">
+    <div class="nav-container">
+      <div class="brand">
+        <div class="shield-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M12 8v4m0 4h.01" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">PHISHGUARD</span>
+          <span class="brand-sub">AI THREAT INTELLIGENCE ENGINE</span>
+        </div>
+      </div>
+
+      <div class="nav-controls">
+        <div class="mode-switcher">
+          <button class="mode-btn active" id="btnModeUrl" onclick="switchMode('url')">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+            URL Scanner
+          </button>
+          <button class="mode-btn" id="btnModeEmail" onclick="switchMode('email')">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            Email Analyzer
+          </button>
+        </div>
+        <div class="status-indicator">
+          <span class="pulse-dot"></span>
+          <span class="status-text">RF MODEL v4.2 ONLINE</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-wrapper">
+    <!-- Input Section -->
+    <section class="input-card glass-panel">
+      <!-- URL Input View -->
+      <div id="urlInputContainer" class="input-view active">
+        <div class="input-header">
+          <h2>Inspect URL Target</h2>
+          <p class="subtitle">Enter any URL to extract Random Forest feature vectors, domain age, and typosquatting risk.</p>
+        </div>
+        
+        <div class="search-bar-box">
+          <div class="search-prefix">Enter URL:</div>
+          <input type="text" id="targetUrlInput" placeholder="e.g. https://secure-login-paypal.verify-account-update.xyz/login.php" value="https://secure-login-example-verify.xyz/account-update">
+          <button class="btn-scan" onclick="analyzeTarget()">
+            <span class="btn-text">RUN ANALYSIS</span>
+            <span class="btn-icon">⚡</span>
+          </button>
+        </div>
+
+        <div class="preset-pills">
+          <span class="label">Quick Demo Targets:</span>
+          <button class="pill risk-high" onclick="loadPreset('https://paypal-security-update.account-verify.top/login')">Phishing Attack</button>
+          <button class="pill risk-med" onclick="loadPreset('https://paypaI.com/signin-security-auth')">Homoglyph (paypaI.com)</button>
+          <button class="pill risk-low" onclick="loadPreset('https://www.github.com')">Safe Target (GitHub)</button>
+        </div>
+      </div>
+
+      <!-- Email Input View -->
+      <div id="emailInputContainer" class="input-view">
+        <div class="input-header">
+          <h2>Inspect Raw Email & Headers</h2>
+          <p class="subtitle">Paste email headers and body text to detect spoofed senders, urgent vectors, and hidden malicious links.</p>
+        </div>
+
+        <div class="email-form-grid">
+          <div class="form-group">
+            <label>Sender Address (From:):</label>
+            <input type="text" id="emailSender" placeholder="e.g. Security Alert <security@paypaI-verify.com>" value="PayPal Support <service@security-alert-paypaI.com>">
+          </div>
+          <div class="form-group">
+            <label>Reply-To Header:</label>
+            <input type="text" id="emailReplyTo" placeholder="e.g. harvest@evil-domain.ru" value="drop-box@harvest-server.top">
+          </div>
+        </div>
+
+        <div class="form-group margin-top">
+          <label>Email Body Content:</label>
+          <textarea id="emailBody" rows="5" placeholder="Paste full email text here...">URGENT: Your account access has been limited due to unauthorized login attempts. Please click the link below within 24 hours to verify your identity and prevent permanent suspension:
+
+https://secure-login-paypal.verify-account-update.xyz/login.php
+
+Failure to respond immediately will result in forfeiture of funds.</textarea>
+        </div>
+
+        <button class="btn-scan btn-full" onclick="analyzeTarget()">
+          <span class="btn-text">ANALYZE EMAIL & HEADERS</span>
+          <span class="btn-icon">🔍</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Scanning Overlay Animation -->
+    <div id="scanAnimationOverlay" class="scan-loader glass-panel hidden">
+      <div class="radar-box">
+        <div class="radar-sweep"></div>
+        <div class="radar-circle c1"></div>
+        <div class="radar-circle c2"></div>
+        <div class="radar-circle c3"></div>
+      </div>
+      <div class="scan-logs">
+        <div class="log-line" id="log1">> Extracting URL lexical vectors (entropy, length, subdomains)...</div>
+        <div class="log-line" id="log2">> Querying WHOIS & RDAP registry for domain age...</div>
+        <div class="log-line" id="log3">> Computing Levenshtein homoglyph distance against brand vectors...</div>
+        <div class="log-line" id="log4">> Running Random Forest classifier inference...</div>
+      </div>
+    </div>
+
+    <!-- Results Dashboard View -->
+    <section id="resultsDashboard" class="dashboard-container hidden">
+      <!-- Main Score Banner -->
+      <div class="dashboard-header-card glass-panel">
+        <div class="dashboard-top-row">
+          <div class="brand-tag">PHISHGUARD THREAT REPORT</div>
+          <button class="btn-secondary" onclick="resetScan()">Scan Another Target</button>
+        </div>
+
+        <div class="hero-score-grid">
+          <!-- Circular Risk Score -->
+          <div class="score-display">
+            <div class="gauge-wrapper">
+              <svg class="gauge-svg" viewBox="0 0 120 120">
+                <circle class="gauge-bg" cx="60" cy="60" r="52"></circle>
+                <circle class="gauge-fill" id="gaugeCircle" cx="60" cy="60" r="52"></circle>
+              </svg>
+              <div class="score-inner">
+                <span class="score-num" id="riskScoreVal">0</span>
+                <span class="score-denom">/ 100</span>
+              </div>
+            </div>
+            <div class="risk-badge-box">
+              <div id="riskStatusBadge" class="status-badge risk-high-bg">🔴 HIGH RISK</div>
+            </div>
+          </div>
+
+          <!-- Target URL Detail Box -->
+          <div class="target-meta-box">
+            <span class="meta-label">TARGET ANALYZED:</span>
+            <div class="target-url-display" id="displayTargetUrl">https://example.com</div>
+
+            <div class="quick-stats-row">
+              <div class="stat-pill">
+                <span class="stat-lbl">Domain Age</span>
+                <span class="stat-val" id="dispDomainAge">18 Days</span>
+              </div>
+              <div class="stat-pill">
+                <span class="stat-lbl">Entropy Score</span>
+                <span class="stat-val" id="dispEntropy">4.82 bits</span>
+              </div>
+              <div class="stat-pill">
+                <span class="stat-lbl">Homoglyph Risk</span>
+                <span class="stat-val" id="dispHomoglyph">HIGH MATCH</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Security Signals & Breakdown Grid -->
+      <div class="dashboard-grid">
+        <!-- Security Signal Progress Bars -->
+        <div class="panel glass-panel">
+          <div class="panel-header">
+            <h3>SECURITY SIGNALS</h3>
+            <span class="panel-tag">Sub-Engine Vector Scores</span>
+          </div>
+          <div class="signal-list">
+            <div class="signal-item">
+              <div class="signal-meta">
+                <span>URL Lexical Structure</span>
+                <span id="sigUrlScore" class="sig-score">86</span>
+              </div>
+              <div class="progress-track"><div class="progress-bar high" id="barUrl" style="width: 86%"></div></div>
+            </div>
+
+            <div class="signal-item">
+              <div class="signal-meta">
+                <span>Domain Intelligence (WHOIS/RDAP)</span>
+                <span id="sigDomainScore" class="sig-score">91</span>
+              </div>
+              <div class="progress-track"><div class="progress-bar high" id="barDomain" style="width: 91%"></div></div>
+            </div>
+
+            <div class="signal-item">
+              <div class="signal-meta">
+                <span>SSL / TLS Security</span>
+                <span id="sigSslScore" class="sig-score">30</span>
+              </div>
+              <div class="progress-track"><div class="progress-bar low" id="barSsl" style="width: 30%"></div></div>
+            </div>
+
+            <div class="signal-item">
+              <div class="signal-meta">
+                <span>Brand Similarity & Homoglyph</span>
+                <span id="sigBrandScore" class="sig-score">83</span>
+              </div>
+              <div class="progress-track"><div class="progress-bar high" id="barBrand" style="width: 83%"></div></div>
+            </div>
+
+            <div class="signal-item">
+              <div class="signal-meta">
+                <span>Reputation & Keyword Risk</span>
+                <span id="sigRepScore" class="sig-score">95</span>
+              </div>
+              <div class="progress-track"><div class="progress-bar high" id="barRep" style="width: 95%"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- The "WHY?" Explainable AI Component -->
+        <div class="panel glass-panel">
+          <div class="panel-header">
+            <h3>WHY THIS TARGET WAS FLAGGED</h3>
+            <span class="panel-tag">Explainable AI Reasoning</span>
+          </div>
+          <div class="why-list" id="whyListContainer">
+            <!-- Dynamic Why Items -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Domain Intelligence & Random Forest Vectors Row -->
+      <div class="dashboard-grid">
+        <!-- Domain Intelligence Box -->
+        <div class="panel glass-panel">
+          <div class="panel-header">
+            <h3>DOMAIN INTELLIGENCE & RDAP</h3>
+            <span class="panel-tag">Live Infrastructure Lookup</span>
+          </div>
+          <div class="intel-table">
+            <div class="intel-row"><span class="lbl">Registered Age:</span><span class="val" id="rdapAge">--</span></div>
+            <div class="intel-row"><span class="lbl">Expiration Date:</span><span class="val" id="rdapExp">--</span></div>
+            <div class="intel-row"><span class="lbl">Registrar:</span><span class="val" id="rdapRegistrar">--</span></div>
+            <div class="intel-row"><span class="lbl">Resolved IP Address:</span><span class="val highlight" id="rdapIp">--</span></div>
+            <div class="intel-row"><span class="lbl">Hosting / Geo:</span><span class="val" id="rdapHost">--</span></div>
+            <div class="intel-row"><span class="lbl">DNS Nameservers:</span><span class="val" id="rdapDns">--</span></div>
+          </div>
+        </div>
+
+        <!-- Random Forest Input Vector Inspection -->
+        <div class="panel glass-panel">
+          <div class="panel-header">
+            <h3>RANDOM FOREST FEATURE VECTOR</h3>
+            <span class="panel-tag">Raw Model Inputs</span>
+          </div>
+          <div class="vector-grid" id="vectorGrid">
+            <!-- Dynamic Vector Pills -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Actionable Security Recommendation -->
+      <div class="recommendation-card glass-panel" id="recommendationBox">
+        <div class="rec-icon">🛡️</div>
+        <div class="rec-content">
+          <h4 id="recTitle">SECURITY RECOMMENDATION</h4>
+          <p id="recDesc">Do not enter passwords, OTPs or payment information until the website is verified.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
