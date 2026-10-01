@@ -177,54 +177,57 @@ function extractUrlFeatures(rawUrl) {
 }
 
 // Run Full Threat Analysis
-// Run Full Threat Analysis using PHP Backend
+// Run Full Threat Analysis via PHP Backend
 async function analyzeTarget() {
   document.getElementById('scanAnimationOverlay').classList.remove('hidden');
   document.getElementById('resultsDashboard').classList.add('hidden');
 
-  // Keep the sequential simulated log animation for UI UX
+  // Sequential simulated log animation
   setTimeout(() => { document.getElementById('log1').style.opacity = '1'; }, 200);
   setTimeout(() => { document.getElementById('log2').style.opacity = '1'; }, 600);
   setTimeout(() => { document.getElementById('log3').style.opacity = '1'; }, 1000);
   setTimeout(() => { document.getElementById('log4').style.opacity = '1'; }, 1400);
 
-  // Prepare payload based on active mode
-  let payload = { mode: activeMode };
+  let targetUrl = '';
   if (activeMode === 'url') {
-    payload.url = document.getElementById('targetUrlInput').value || 'https://example.com';
+      targetUrl = document.getElementById('targetUrlInput').value || 'https://example.com';
   } else {
-    const body = document.getElementById('emailBody').value;
-    const extractedLinks = body.match(/https?:\/\/[^\s]+/g) || ['https://suspicious-email-link.xyz'];
-    payload.url = extractedLinks[0];
-    payload.sender = document.getElementById('emailSender').value;
+      const body = document.getElementById('emailBody').value;
+      const extractedLinks = body.match(/https?:\/\/[^\s]+/g) || ['https://suspicious-email-link.xyz'];
+      targetUrl = extractedLinks[0];
   }
 
   try {
-    // Send POST request to the PHP backend
-    const response = await fetch('api.php', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
+      // Send data to PHP Backend
+      const response = await fetch('api.php', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ url: targetUrl })
+      });
 
-    if (!response.ok) throw new Error('Backend connection failed');
-    
-    // Parse the JSON response returned by api.php
-    const features = await response.json();
+      if (!response.ok) throw new Error('Backend analysis failed');
+      
+      const features = await response.json();
 
-    // Hide loader and show results
-    document.getElementById('scanAnimationOverlay').classList.add('hidden');
-    document.getElementById('resultsDashboard').classList.remove('hidden');
-    
-    // Pass the backend data into the existing dashboard renderer
-    renderDashboard(features);
+      // Add email specific flags if necessary
+      if (activeMode === 'email') {
+          features.isEmailAnalysis = true;
+          features.sender = document.getElementById('emailSender').value;
+      }
+
+      // Wait for animation to finish before rendering dashboard
+      setTimeout(() => {
+          document.getElementById('scanAnimationOverlay').classList.add('hidden');
+          document.getElementById('resultsDashboard').classList.remove('hidden');
+          renderDashboard(features); // Passes the PHP JSON data into your existing dashboard renderer
+      }, 1800);
 
   } catch (error) {
-    console.error("Threat Engine Error:", error);
-    alert("Could not connect to the analysis server. Ensure your PHP server is running.");
-    document.getElementById('scanAnimationOverlay').classList.add('hidden');
+      console.error("Error communicating with backend:", error);
+      alert("Failed to reach the threat engine backend. Ensure api.php is hosted correctly.");
+      document.getElementById('scanAnimationOverlay').classList.add('hidden');
   }
 }
 
